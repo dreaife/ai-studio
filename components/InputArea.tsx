@@ -1,7 +1,7 @@
 // app/components/InputArea.tsx
 'use client';
 
-import { useState } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import axios from 'axios';
 import { toast } from 'react-toastify';
 // import SpeechRecognition, { useSpeechRecognition } from 'react-speech-recognition';
@@ -19,17 +19,22 @@ interface InputAreaProps {
 
 export default function InputArea({ onNewMessage }: InputAreaProps) {
   const [input, setInput] = useState<string>('');
-//   const { transcript, resetTranscript } = useSpeechRecognition();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-//   if (!SpeechRecognition.browserSupportsSpeechRecognition()) {
-//     toast.warn('抱歉，您的浏览器不支持语音识别。');
-//   }
+  // 自动调整 textarea 高度
+  useEffect(() => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`;
+    }
+  }, [input]);
 
   const sendMessage = async (message: string) => {
     if (!message.trim()) return;
 
     const userMessage: Message = { sender: 'user', text: message };
     onNewMessage(userMessage);
+    setInput(''); // 发送后清空输入框
 
     try {
       const res = await axios.post(
@@ -51,16 +56,12 @@ export default function InputArea({ onNewMessage }: InputAreaProps) {
     }
   };
 
-//   const startListening = () => {
-//     SpeechRecognition.startListening({ continuous: false });
-//   };
-
-//   const sendVoiceMessage = async () => {
-//     if (!transcript.trim()) return;
-
-//     sendMessage(transcript);
-//     resetTranscript();
-//   };
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      sendMessage(input);
+    }
+  };
 
   const onDrop = async (acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
@@ -119,7 +120,7 @@ export default function InputArea({ onNewMessage }: InputAreaProps) {
   };
 
   return (
-    <div className="flex items-center p-4 bg-white shadow-md">
+    <div className="absolute bottom-4 left-1/2 transform -translate-x-1/2 w-11/12 md:w-2/3 lg:w-1/2 bg-white rounded-full shadow-lg flex items-center px-4 py-2">
       {/* 图片上传按钮 */}
       <div {...getRootProps()} className="mr-2 cursor-pointer">
         <input {...getInputProps()} />
@@ -140,11 +141,11 @@ export default function InputArea({ onNewMessage }: InputAreaProps) {
       </div>
 
       {/* 语音输入按钮 */}
-      {/* <button
-        onClick={startListening}
+      <button
+        // onClick={startListening}
         className="mr-2 p-2 text-gray-600 hover:text-gray-800"
       >
-         <svg
+        <svg
           className="w-6 h-6"
           fill="none"
           stroke="currentColor"
@@ -158,17 +159,18 @@ export default function InputArea({ onNewMessage }: InputAreaProps) {
             d="M12 15v3m0-3a3 3 0 110-6 3 3 0 010 6zM5 12a7 7 0 1114 0H5z"
           />
         </svg>
-      </button> */}
+      </button>
 
       {/* 输入框 */}
       <div className="relative flex-1">
-        <input
-          type="text"
+        <textarea
+          ref={textareaRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && sendMessage(input)}
+          onKeyDown={handleKeyDown}
           placeholder="输入消息..."
-          className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500"
+          className="w-full px-4 py-2 pr-12 border border-gray-300 rounded-full focus:outline-none focus:ring-2 focus:ring-blue-500 resize-none overflow-hidden"
+          rows={1}
         />
         {/* 发送按钮 */}
         <button
@@ -188,6 +190,7 @@ export default function InputArea({ onNewMessage }: InputAreaProps) {
               strokeWidth={2}
               d="M5 12h14M12 5l7 7-7 7"
             />
+            {/* </path> */}
           </svg>
         </button>
       </div>

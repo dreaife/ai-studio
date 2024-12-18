@@ -12,6 +12,9 @@ export default {
         background: "var(--background)",
         foreground: "var(--foreground)",
       },
+      maxWidth: {
+        'input-area': '50rem', // 根据需要调整
+      },
     },
   },
   plugins: [],
