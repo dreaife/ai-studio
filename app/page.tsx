@@ -1,23 +1,20 @@
 import Head from 'next/head';
-import Chat from '../components/Chat'; 
-import VoiceChat from '../components/VoiceChat';
-import ImageUpload from '../components/ImageUpload';
+import ChatContainer from '../components/ChatContainer';
 import { ToastContainer } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-// import 'regenerator-runtime/runtime';
 
 export default function Home() {
   return (
-    <div>
+    <div className="flex flex-col h-screen">
       <Head>
         <title>Gemini 对话平台</title>
         <meta name="description" content="使用 Google Gemini API 的对话平台" />
       </Head>
-      <main className="max-w-4xl mx-auto p-4 flex flex-col gap-6">
-        <h1 className="text-3xl text-center font-bold">Gemini 对话平台</h1>
-        <Chat />
-        <VoiceChat />
-        <ImageUpload />
+      <header className="bg-blue-600 text-white p-4 text-center">
+        <h1 className="text-2xl font-bold">Gemini 对话平台</h1>
+      </header>
+      <main className="flex-1 bg-gray-100">
+        <ChatContainer />
       </main>
       <ToastContainer />
     </div>
