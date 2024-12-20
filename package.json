@@ -1,5 +1,5 @@
 {
-  "name": "ai-studio",
+  "name": "gemini-test",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -10,27 +10,26 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
-    "axios": "^1.7.9",
-    "browser-image-compression": "^2.0.2",
-    "next": "15.1.0",
+    "genai": "^0.0.18",
+    "next": "15.1.1",
+    "oidc-client-ts": "^3.1.0",
+    "pg": "^8.13.1",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
-    "react-dropzone": "^14.3.5",
-    "react-speech-recognition": "^3.10.0",
-    "react-toastify": "^11.0.0",
-    "regenerator-runtime": "^0.14.1"
+    "react-markdown": "^9.0.1",
+    "react-oidc-context": "^3.2.0"
   },
   "devDependencies": {
     "@eslint/eslintrc": "^3",
+    "@tailwindcss/typography": "^0.5.15",
     "@types/node": "^20",
+    "@types/pg": "^8.11.10",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "@types/react-speech-recognition": "^3.9.5",
-    "autoprefixer": "^10.4.20",
     "eslint": "^9",
-    "eslint-config-next": "15.1.0",
-    "postcss": "^8.4.49",
-    "tailwindcss": "^3.4.17",
+    "eslint-config-next": "15.1.1",
+    "postcss": "^8",
+    "tailwindcss": "^3.4.1",
     "typescript": "^5"
   }
 }
