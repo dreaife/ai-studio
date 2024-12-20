@@ -7,11 +7,11 @@ const model = genAI.getGenerativeModel({ model: process.env.MY_DEFAULT_GEMINI_MO
 
 // 创建数据库连接池
 const pool = new Pool({
-  host: 'database-1.cn84eyg6sx64.ap-northeast-1.rds.amazonaws.com',
-  port: 5432,
-  database: 'ai_chat',
-  user: 'postgres',
-  password: 'postgres',
+  host: process.env.DATABASE_HOST,
+  port: parseInt(process.env.DATABASE_PORT || '5432'),
+  database: process.env.DATABASE_NAME,
+  user: process.env.DATABASE_USER,
+  password: process.env.DATABASE_PASSWORD,
   ssl: {
     rejectUnauthorized: false
   }
