@@ -1,13 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { useAuth } from "react-oidc-context";
 import { useRouter } from 'next/navigation';
-import ReactMarkdown from 'react-markdown';
 import ProtectedRoute from "@/components/ProtectedRoute";
 import Header from "@/components/Header";
 import Sidebar from "@/components/Sidebar";
-import ChatInterface from "@/components/ChatInterface";
 
 export default function Home() {
   const auth = useAuth();
@@ -15,6 +13,10 @@ export default function Home() {
   const [geminiResponse, setGeminiResponse] = useState("");
   const [prompt, setPrompt] = useState("");
   const [chatId, setChatId] = useState<number | null>(null);
+
+  const handleSelectChat = (id: number) => {
+    console.log("Selected chat ID:", id);
+  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -30,7 +32,7 @@ export default function Home() {
     });
     const { id } = await response.json();
     setChatId(id);
-    console.log("New chatId", id);
+    console.log("New chatId", chatId);
     await sendChatMessage(id, userPrompt);
 
     // 触发事件，通知Sidebar更新
@@ -60,6 +62,7 @@ export default function Home() {
         const text = new TextDecoder().decode(value);
         accumulatedResponse += text;
         setGeminiResponse(accumulatedResponse);
+        console.log("Gemini response:", geminiResponse);
       }
     } finally {
       reader.releaseLock();
@@ -71,7 +74,7 @@ export default function Home() {
       <div className="flex h-screen flex-col">
         <Header />
         <div className="flex flex-1 overflow-hidden">
-          <Sidebar />
+          <Sidebar onSelectChat={handleSelectChat} />
           
           <main className="flex-1 flex flex-col">
             <div className="flex-1 overflow-y-auto p-6">

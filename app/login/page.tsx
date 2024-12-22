@@ -16,7 +16,7 @@ export default function LoginPage() {
 
   const signOutRedirect = () => {
     const clientId = "243sbg9feal566d63g036q1dhv";
-    const logoutUri = "http://localhost:3000/login";
+    const logoutUri = process.env.NEXT_PUBLIC_URI + "/login";
     const cognitoDomain = "https://bgm-angular-login.auth.ap-northeast-1.amazoncognito.com";
     window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
 
