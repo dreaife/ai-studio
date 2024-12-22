@@ -1,7 +1,6 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { useAuth } from "react-oidc-context";
 import ReactMarkdown from 'react-markdown';
 
 interface ChatHistory {
@@ -10,7 +9,6 @@ interface ChatHistory {
 }
 
 export default function ChatInterface({ chatId }: { chatId: number }) {
-  const auth = useAuth();
   const [geminiResponse, setGeminiResponse] = useState("");
   const [prompt, setPrompt] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatHistory[]>([]);

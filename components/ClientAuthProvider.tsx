@@ -6,7 +6,7 @@ import { ReactNode, useEffect, useState } from "react";
 const cognitoAuthConfig = {
   authority: "https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_aKEXP7GNF",
   client_id: "243sbg9feal566d63g036q1dhv",
-  redirect_uri: "http://localhost:3000",
+  redirect_uri: process.env.NEXT_PUBLIC_URI,
   response_type: "code",
   scope: "email openid phone",
   loadUserInfo: true,
