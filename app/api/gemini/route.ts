@@ -32,6 +32,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const { prompt, history, chatId } = await req.json();
+
+  // get picture
   
   // 直接使用数据库连接保存用户消息
   await pool.query(
