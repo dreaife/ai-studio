@@ -1,5 +1,5 @@
 import { useAuth } from "react-oidc-context";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { useRouter } from 'next/navigation';
 
 interface ChatCollection {
@@ -11,13 +11,15 @@ export default function Sidebar({ onSelectChat }: { onSelectChat: (id: number) =
   const auth = useAuth();
   const [collections, setCollections] = useState<ChatCollection[]>([]);
   const router = useRouter();
+  
+  console.log("onSelectChat", onSelectChat);
 
-  const fetchCollections = async () => {
+  const fetchCollections = useCallback(async () => {
     if (!auth.user?.profile.sub) return;
     const response = await fetch(`/api/chat/collections?userId=${auth.user?.profile.sub}`);
     const data = await response.json();
     setCollections(data);
-  };
+  }, [auth.user?.profile.sub]);
 
   useEffect(() => {
     if (auth.user?.profile.sub) {
@@ -35,7 +37,7 @@ export default function Sidebar({ onSelectChat }: { onSelectChat: (id: number) =
     return () => {
       window.removeEventListener('collectionUpdated', handleCollectionUpdate);
     };
-  }, [auth.user]);
+  }, [fetchCollections]);
 
   const handleChatSelect = (id: number) => {
     router.push(`/chat?id=${id}`);

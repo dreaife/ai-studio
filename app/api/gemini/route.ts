@@ -1,6 +1,10 @@
-const { GoogleGenerativeAI } = require("@google/generative-ai");
+import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse } from "next/server";
 import { Pool } from 'pg';
+
+if (!process.env.MY_GEMINI_API_KEY || !process.env.MY_DEFAULT_GEMINI_MODEL) {
+  throw new Error('Missing required environment variables');
+}
 
 const genAI = new GoogleGenerativeAI(process.env.MY_GEMINI_API_KEY);
 const model = genAI.getGenerativeModel({ model: process.env.MY_DEFAULT_GEMINI_MODEL });
@@ -17,7 +21,7 @@ const pool = new Pool({
   }
 });
 
-export async function GET(req: Request) {  
+export async function GET() {
   const prompt = "Explain how AI works";
 
   const result = await model.generateContent(prompt);
