@@ -21,26 +21,22 @@ export default function Home() {
     const userPrompt = prompt;
     setPrompt("");
 
-    if (!chatId) {
-      const response = await fetch("/api/chat/collections", {
-        method: "POST",
-        body: JSON.stringify({
-          userId: auth.user?.profile.sub,
-          name: `新对话 ${new Date().toLocaleString()}`
-        })
-      });
-      const { id } = await response.json();
-      setChatId(id);
-      console.log("New chatId", id);
-      await sendChatMessage(id, userPrompt);
+    const response = await fetch("/api/chat/collections", {
+      method: "POST",
+      body: JSON.stringify({
+        userId: auth.user?.profile.sub,
+        name: `新对话 ${new Date().toLocaleString()}`
+      })
+    });
+    const { id } = await response.json();
+    setChatId(id);
+    console.log("New chatId", id);
+    await sendChatMessage(id, userPrompt);
 
-      // 触发事件，通知Sidebar更新
-      window.dispatchEvent(new Event('collectionUpdated'));
+    // 触发事件，通知Sidebar更新
+    window.dispatchEvent(new Event('collectionUpdated'));
 
-      router.push(`/chat?id=${id}`);
-    } else {
-      await sendChatMessage(chatId, userPrompt);
-    }
+    router.push(`/chat?id=${id}`);
   };
 
   const sendChatMessage = async (id: number, userPrompt: string) => {
@@ -76,38 +72,35 @@ export default function Home() {
         <Header />
         <div className="flex flex-1 overflow-hidden">
           <Sidebar />
-          {chatId ? (
-            <ChatInterface chatId={chatId} />
-          ) : (
-            <main className="flex-1 flex flex-col">
-              <div className="flex-1 overflow-y-auto p-6">
-                <div className="flex items-center justify-center h-full">
-                  <div className="text-center">
-                    <h2 className="text-2xl font-bold mb-4">开始新对话</h2>
-                    <p className="text-gray-600 mb-8">在下方输入你的问题，开始一个新的对话</p>
-                  </div>
+          
+          <main className="flex-1 flex flex-col">
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="flex items-center justify-center h-full">
+                <div className="text-center">
+                  <h2 className="text-2xl font-bold mb-4">开始新对话</h2>
+                  <p className="text-gray-600 mb-8">在下方输入你的问题，开始一个新的对话</p>
                 </div>
               </div>
-              
-              <div className="p-4 border-t">
-                <form onSubmit={handleSubmit} className="flex gap-2">
-                  <input 
-                    type="text" 
-                    value={prompt} 
-                    onChange={(e) => setPrompt(e.target.value)}
-                    className="flex-1 p-3 border rounded-lg"
-                    placeholder="请输入问题..."
-                  />
-                  <button 
-                    type="submit"
-                    className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-                  >
-                    发送
-                  </button>
-                </form>
-              </div>
-            </main>
-          )}
+            </div>
+            
+            <div className="p-4 border-t">
+              <form onSubmit={handleSubmit} className="flex gap-2">
+                <input 
+                  type="text" 
+                  value={prompt} 
+                  onChange={(e) => setPrompt(e.target.value)}
+                  className="flex-1 p-3 border rounded-lg"
+                  placeholder="请输入问题..."
+                />
+                <button 
+                  type="submit"
+                  className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
+                >
+                  发送
+                </button>
+              </form>
+            </div>
+          </main>
         </div>
       </div>
     </ProtectedRoute>

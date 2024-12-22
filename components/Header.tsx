@@ -23,9 +23,12 @@ export default function Header() {
 
   const signOutRedirect = () => {
     const clientId = "243sbg9feal566d63g036q1dhv";
-    const logoutUri = "http://localhost:3000";
+    const logoutUri = "http://localhost:3000/login";
     const cognitoDomain = "https://bgm-angular-login.auth.ap-northeast-1.amazoncognito.com";
+
     window.location.href = `${cognitoDomain}/logout?client_id=${clientId}&logout_uri=${encodeURIComponent(logoutUri)}`;
+
+    sessionStorage.removeItem("oidc.user:https://cognito-idp.ap-northeast-1.amazonaws.com/ap-northeast-1_aKEXP7GNF:243sbg9feal566d63g036q1dhv");
   };
 
   const handleTitleClick = () => {
