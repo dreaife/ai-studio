@@ -21,10 +21,13 @@ export async function GET(req: Request) {
     [chatId]
   );
   
-  return NextResponse.json(result.rows.map(row => ({
-    role: row.role,
-    parts: [{ text: row.content }]
-  })));
+  return NextResponse.json(result.rows.map(row => {
+    const content = typeof row.content === 'string' ? JSON.parse(row.content) : row.content;
+    return {
+      role: row.role,
+      content: { text: content.text, images: content.images || [] },
+    };
+  }));
 }
 
 export async function POST(req: Request) {

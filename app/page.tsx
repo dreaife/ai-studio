@@ -23,8 +23,15 @@ export default function Home() {
     const userPrompt = prompt;
     setPrompt("");
 
+    const formData = new FormData();
+    formData.append("userId", auth.user?.profile.sub || '');
+    formData.append("name", `新对话 ${new Date().toLocaleString()}`);
+
     const response = await fetch("/api/chat/collections", {
       method: "POST",
+      headers: {
+        'Content-Type': 'application/json',
+      },
       body: JSON.stringify({
         userId: auth.user?.profile.sub,
         name: `新对话 ${new Date().toLocaleString()}`
@@ -42,13 +49,14 @@ export default function Home() {
   };
 
   const sendChatMessage = async (id: number, userPrompt: string) => {
+    const formData = new FormData();
+    formData.append('prompt', userPrompt);
+    formData.append('chatId', id.toString());
+
     const chatResponse = await fetch("/api/gemini", {
       method: "POST",
-      body: JSON.stringify({
-        prompt: userPrompt,
-        chatId: id,
-        history: []  // 初始历史记录为空
-      })
+      // 不要设置 Content-Type，让浏览器自动处理
+      body: formData
     });
 
     const reader = chatResponse.body?.getReader();
