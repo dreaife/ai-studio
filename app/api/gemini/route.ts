@@ -1,9 +1,18 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
 import { NextResponse, NextRequest } from "next/server";
 import { Pool } from 'pg';
-import { GoogleAIFileManager } from "@google/generative-ai/server";
 import { promises as fs } from 'fs';
 import path from 'path';
+
+interface ChatContent {
+  text: string;
+  images?: string[];
+}
+
+interface ChatMessage {
+  role: 'user' | 'model';
+  content: ChatContent;
+}
 
 export const config = {
   api: {
@@ -53,7 +62,7 @@ export async function POST(req: NextRequest) {
   const currentCount = parseInt(currentCountResult.rows[0].count);
 
   // 处理图片上传
-  let imageUris: string[] = [];
+  const imageUris: string[] = [];
   if (chatId && images.length > 0) {
     const directoryPath = path.join(process.cwd(), 'public', 'data', chatId.toString());
     await fs.mkdir(directoryPath, { recursive: true });
@@ -67,7 +76,7 @@ export async function POST(req: NextRequest) {
   }
 
   // 构造 content 对象
-  const content: any = {
+  const content: ChatContent = {
     text: prompt,
   };
   if (imageUris.length > 0) {
@@ -84,7 +93,7 @@ export async function POST(req: NextRequest) {
     history: [] // 可以根据需要传递历史记录
   });
 
-  // 将图片处理移到这里
+  // 处理图片和文字一起传输到 Gemini 模型
   const parts = await Promise.all([
     ...imageUris.map(async uri => ({
       inlineData: {
@@ -107,7 +116,7 @@ export async function POST(req: NextRequest) {
       }
 
       // 构造模型响应的内容对象
-      const modelContent: any = {
+      const modelContent: ChatContent = {
         text: fullResponse,
       };
       // if (imageUris.length > 0) {
@@ -115,9 +124,14 @@ export async function POST(req: NextRequest) {
       // }
 
       // 保存模型响应到数据库
+      const modelMessage: ChatMessage = {
+        role: 'model',
+        content: modelContent,
+      };
+
       await pool.query(
         'INSERT INTO chat_messages (collection_id, role, content, sequence_number) VALUES ($1, $2, $3, $4)',
-        [chatId, 'model', modelContent, currentCount + 1]
+        [chatId, 'model', modelMessage.content, currentCount + 1]
       );
 
       controller.close();

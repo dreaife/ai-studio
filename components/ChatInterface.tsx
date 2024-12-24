@@ -1,14 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
-import { useAuth } from "react-oidc-context";
-import { useRouter } from 'next/router';
 import ReactMarkdown from 'react-markdown';
-
-interface ChatContent {
-  text: string;
-  images?: string[];
-}
 
 interface ChatMessage {
   role: string;
@@ -23,35 +16,56 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
   const [prompt, setPrompt] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
-  const chatEndRef = useRef<HTMLDivElement | null>(null);
   const chatContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isGenerating, setIsGenerating] = useState(false);
+  const [shouldScrollToBottom, setShouldScrollToBottom] = useState(true);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (chatId) {
+      setShouldScrollToBottom(true);
       fetchChatHistory();
     }
   }, [chatId]);
 
   useEffect(() => {
-    if (chatEndRef.current && chatContainerRef.current) {
-      const container = chatContainerRef.current;
-      const scrollHeight = container.scrollHeight;
-      const clientHeight = container.clientHeight;
-      const scrollTop = container.scrollTop;
-      
-      if (scrollHeight - scrollTop - clientHeight < 100) {
-        chatEndRef.current.scrollIntoView({ 
-          behavior: "smooth",
-          block: "end"
-        });
+    const scrollToBottom = () => {
+      if (chatContainerRef.current) {
+        const container = chatContainerRef.current;
+        const maxScroll = container.scrollHeight - container.clientHeight;
+        
+        container.scrollTop = maxScroll;
+        
+        if (container.scrollTop < maxScroll) {
+          setTimeout(() => {
+            if (container && shouldScrollToBottom) {
+              container.scrollTop = container.scrollHeight - container.clientHeight;
+            }
+          }, 100);
+        }
       }
+    };
+
+    if (shouldScrollToBottom && chatHistory.length > 0) {
+      setTimeout(scrollToBottom, 0);
     }
-  }, [chatHistory, geminiResponse]);
+  }, [chatHistory, shouldScrollToBottom]);
+
+  useEffect(() => {
+    if (chatContainerRef.current && isGenerating) {
+      const container = chatContainerRef.current;
+      container.scrollTop = container.scrollHeight - container.clientHeight;
+    }
+  }, [chatHistory, geminiResponse, isGenerating]);
 
   const fetchChatHistory = async () => {
-    const response = await fetch(`/api/chat/messages?chatId=${chatId}`);
-    const history = await response.json();
-    setChatHistory(history);
+    try {
+      const response = await fetch(`/api/chat/messages?chatId=${chatId}`);
+      const history = await response.json();
+      setChatHistory(history);
+    } catch (error) {
+      console.error('Error fetching chat history:', error);
+    }
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -66,18 +80,28 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    if (!prompt.trim()) return;
+
     const userPrompt = prompt;
     setPrompt("");
+    
+    if (textareaRef.current) {
+      textareaRef.current.style.height = '96px';
+    }
 
-    const userMessage = {
-      role: 'user',
-      content: {
-        text: userPrompt,
-        images: selectedImages.length > 0 ? selectedImages.map(URL.createObjectURL) : []
+    setIsGenerating(true);
+
+    setChatHistory((prev) => [
+      ...prev,
+      { 
+        role: 'user', 
+        content: { 
+          text: userPrompt, 
+          images: selectedImages.length > 0 ? selectedImages.map(URL.
+            createObjectURL) : [] 
+        } 
       }
-    };
-
-    setChatHistory(prev => [...prev, userMessage]);
+    ]);
 
     const formData = new FormData();
     formData.append("prompt", userPrompt);
@@ -105,19 +129,44 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
       }
     } finally {
       reader.releaseLock();
+      setIsGenerating(false);
     }
 
-    const modelMessage = {
-      role: 'model',
-      content: {
-        text: accumulatedResponse,
-        images: []
+    setChatHistory((prev) => [
+      ...prev,
+      { 
+        role: 'model', 
+        content: { 
+          text: accumulatedResponse,
+          images: [] 
+        } 
       }
-    };
-
-    setChatHistory(prev => [...prev, modelMessage]);
+    ]);
     setGeminiResponse("");
     setSelectedImages([]);
+  };
+
+  // 处理键盘事件
+  const handleKeyPress = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit(e as unknown as React.FormEvent<HTMLFormElement>);
+    }
+  };
+
+  // 处理文本框自适应高度
+  const handleTextareaChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
+    const textarea = e.target;
+    const maxHeight = window.innerHeight * 0.3; // 30% 的视窗高度
+    
+    // 重置高度以获取正确的 scrollHeight
+    textarea.style.height = 'auto';
+    
+    // 计算新的高度
+    const newHeight = Math.min(textarea.scrollHeight, maxHeight);
+    textarea.style.height = `${newHeight}px`;
+    
+    setPrompt(textarea.value);
   };
 
   return (
@@ -125,7 +174,7 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
       <div className="flex-1 overflow-hidden relative">
         <div 
           ref={chatContainerRef}
-          className="absolute inset-0 overflow-y-auto"
+          className="absolute inset-0 overflow-y-auto scroll-smooth"
         >
           <div className="p-6">
             {chatHistory.map((msg, index) => (
@@ -145,7 +194,12 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
                       ))}
                     </div>
                   )}
-                  <ReactMarkdown className="prose prose-slate mt-2">
+                  <ReactMarkdown 
+                    className={`prose prose-slate mt-2 ${msg.role === 'user' ? 'whitespace-pre-wrap' : ''}`}
+                    components={{
+                      p: ({children}) => <p className={msg.role === 'user' ? 'mb-0' : ''}>{children}</p>
+                    }}
+                  >
                     {typeof msg.content === 'object' ? msg.content.text : msg.content}
                   </ReactMarkdown>
                 </div>
@@ -160,13 +214,12 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
                 </div>
               </div>
             )}
-            <div ref={chatEndRef} />
           </div>
         </div>
       </div>
 
       <div className="flex-none border-t bg-white">
-        <form onSubmit={handleSubmit} className="flex flex-col gap-2">
+        <form onSubmit={handleSubmit} className="flex flex-col gap-2 p-4">
           <div className="flex items-center gap-2">
             {selectedImages.map((image, index) => (
               <div key={index} className="relative">
@@ -185,13 +238,18 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
               </div>
             ))}
           </div>
+          
           <textarea 
+            ref={textareaRef}
             value={prompt} 
-            onChange={(e) => setPrompt(e.target.value)}
-            className="p-3 border rounded-lg resize-none"
+            onChange={handleTextareaChange}
+            onKeyDown={handleKeyPress}
+            className="p-3 border rounded-lg resize-none min-h-[96px] max-h-[30vh] overflow-y-auto"
             placeholder="请输入问题..."
+            style={{ height: '96px' }} // 初始高度
             required
           />
+
           <div className="flex items-center justify-between">
             <label className="cursor-pointer">
               <input 
