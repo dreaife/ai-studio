@@ -13,7 +13,7 @@ CREATE TABLE chat_messages (
     collection_id INTEGER REFERENCES chat_collections(id),
     sequence_number INTEGER NOT NULL,  -- 在对话中的序号
     role VARCHAR(50) NOT NULL,  -- 'user' 或 'model'
-    content TEXT NOT NULL,
+    content JSONB NOT NULL, -- 包含text和image,结构为{"text": string, "images": string[]}
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
 

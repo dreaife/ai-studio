@@ -10,6 +10,7 @@
   },
   "dependencies": {
     "@google/generative-ai": "^0.21.0",
+    "formidable": "^3.5.2",
     "genai": "^0.0.18",
     "next": "15.1.1",
     "oidc-client-ts": "^3.1.0",
@@ -22,6 +23,7 @@
   "devDependencies": {
     "@eslint/eslintrc": "^3",
     "@tailwindcss/typography": "^0.5.15",
+    "@types/formidable": "^3.4.5",
     "@types/node": "^20",
     "@types/pg": "^8.11.10",
     "@types/react": "^19",
