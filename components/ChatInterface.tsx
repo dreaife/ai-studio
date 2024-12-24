@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "react-oidc-context";
 import { useRouter } from 'next/router';
 import ReactMarkdown from 'react-markdown';
@@ -23,31 +23,61 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
   const [prompt, setPrompt] = useState("");
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [selectedImages, setSelectedImages] = useState<File[]>([]);
+  const chatEndRef = useRef<HTMLDivElement | null>(null);
+  const chatContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    console.log("===ChatInterface mounted");
     if (chatId) {
       fetchChatHistory();
     }
   }, [chatId]);
 
+  useEffect(() => {
+    if (chatEndRef.current && chatContainerRef.current) {
+      const container = chatContainerRef.current;
+      const scrollHeight = container.scrollHeight;
+      const clientHeight = container.clientHeight;
+      const scrollTop = container.scrollTop;
+      
+      if (scrollHeight - scrollTop - clientHeight < 100) {
+        chatEndRef.current.scrollIntoView({ 
+          behavior: "smooth",
+          block: "end"
+        });
+      }
+    }
+  }, [chatHistory, geminiResponse]);
+
   const fetchChatHistory = async () => {
     const response = await fetch(`/api/chat/messages?chatId=${chatId}`);
     const history = await response.json();
-    console.log("===Fetched chat history:", history);
     setChatHistory(history);
   };
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files) {
-      setSelectedImages(Array.from(e.target.files));
+    if (e.target.files && e.target.files.length > 0) {
+      setSelectedImages((prev) => [...prev, ...Array.from(e.target.files!)]);
     }
+  };
+
+  const handleRemoveImage = (index: number) => {
+    setSelectedImages((prev) => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const userPrompt = prompt;
     setPrompt("");
+
+    const userMessage = {
+      role: 'user',
+      content: {
+        text: userPrompt,
+        images: selectedImages.length > 0 ? selectedImages.map(URL.createObjectURL) : []
+      }
+    };
+
+    setChatHistory(prev => [...prev, userMessage]);
 
     const formData = new FormData();
     formData.append("prompt", userPrompt);
@@ -56,7 +86,6 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
       formData.append("image", image);
     });
 
-    // 发送请求到后端 API
     const response = await fetch("/api/gemini", {
       method: "POST",
       body: formData,
@@ -73,76 +102,118 @@ export default function ChatInterface({ chatId }: { chatId: number }) {
         const text = new TextDecoder().decode(value);
         accumulatedResponse += text;
         setGeminiResponse(accumulatedResponse);
-        console.log("Gemini response:", accumulatedResponse);
       }
     } finally {
       reader.releaseLock();
     }
 
-    // 重新获取聊天记录以显示最新消息
-    fetchChatHistory();
+    const modelMessage = {
+      role: 'model',
+      content: {
+        text: accumulatedResponse,
+        images: []
+      }
+    };
 
-    // 清空已选择的图片
+    setChatHistory(prev => [...prev, modelMessage]);
+    setGeminiResponse("");
     setSelectedImages([]);
   };
 
   return (
-    <main className="flex-1 flex flex-col">
-      <div className="flex-1 overflow-y-auto p-6">
-        {chatHistory.map((msg, index) => (
-          <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
-            <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
-              msg.role === 'user' ? 'bg-blue-100' : 'bg-gray-100'
-            }`}>
-              {typeof msg.content === 'object' && msg.content.images && (
-                <div className="mb-2">
-                  {msg.content.images.map((src, idx) => (
-                    <img key={idx} src={src} alt={`Uploaded ${idx + 1}`} className="mb-2 max-w-full h-auto" />
-                  ))}
+    <div className="flex flex-col h-full w-full">
+      <div className="flex-1 overflow-hidden relative">
+        <div 
+          ref={chatContainerRef}
+          className="absolute inset-0 overflow-y-auto"
+        >
+          <div className="p-6">
+            {chatHistory.map((msg, index) => (
+              <div key={index} className={`mb-4 ${msg.role === 'user' ? 'text-right' : 'text-left'}`}>
+                <div className={`inline-block p-3 rounded-lg max-w-[80%] ${
+                  msg.role === 'user' ? 'bg-blue-100' : 'bg-gray-100'
+                }`}>
+                  {typeof msg.content === 'object' && msg.content.images && msg.content.images.length > 0 && (
+                    <div className="mb-2 flex gap-2">
+                      {msg.content.images.map((src, idx) => (
+                        <img
+                          key={idx}
+                          src={src}
+                          alt={`Uploaded ${idx + 1}`}
+                          className="w-32 h-32 object-cover rounded-lg"
+                        />
+                      ))}
+                    </div>
+                  )}
+                  <ReactMarkdown className="prose prose-slate mt-2">
+                    {typeof msg.content === 'object' ? msg.content.text : msg.content}
+                  </ReactMarkdown>
                 </div>
-              )}
-              <ReactMarkdown className="prose prose-slate">
-                {typeof msg.content === 'object' ? msg.content.text : msg.content}
-              </ReactMarkdown>
-            </div>
+              </div>
+            ))}
+            {geminiResponse && (
+              <div className="mb-4 text-left">
+                <div className="inline-block p-3 rounded-lg bg-gray-100 max-w-[80%]">
+                  <ReactMarkdown className="prose prose-slate">
+                    {geminiResponse}
+                  </ReactMarkdown>
+                </div>
+              </div>
+            )}
+            <div ref={chatEndRef} />
           </div>
-        ))}
-        {geminiResponse && (
-          <div className="mb-4 text-left">
-            <div className="inline-block p-3 rounded-lg bg-gray-100 max-w-[80%]">
-              <ReactMarkdown className="prose prose-slate">
-                {geminiResponse}
-              </ReactMarkdown>
-            </div>
-          </div>
-        )}
+        </div>
       </div>
-      
-      <div className="p-4 border-t">
+
+      <div className="flex-none border-t bg-white">
         <form onSubmit={handleSubmit} className="flex flex-col gap-2">
-          <input 
-            type="text" 
+          <div className="flex items-center gap-2">
+            {selectedImages.map((image, index) => (
+              <div key={index} className="relative">
+                <img
+                  src={URL.createObjectURL(image)}
+                  alt={`Selected ${index + 1}`}
+                  className="w-12 h-12 rounded-full"
+                />
+                <button
+                  type="button"
+                  onClick={() => handleRemoveImage(index)}
+                  className="absolute top-0 right-0 bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                >
+                  &times;
+                </button>
+              </div>
+            ))}
+          </div>
+          <textarea 
             value={prompt} 
             onChange={(e) => setPrompt(e.target.value)}
-            className="p-3 border rounded-lg"
+            className="p-3 border rounded-lg resize-none"
             placeholder="请输入问题..."
             required
           />
-          <input 
-            type="file" 
-            accept="image/png, image/jpeg, image/webp, image/heic, image/heif"
-            multiple
-            onChange={handleImageChange}
-            className="p-3 border rounded-lg"
-          />
-          <button 
-            type="submit"
-            className="px-6 py-3 bg-blue-500 text-white rounded-lg hover:bg-blue-600"
-          >
-            发送
-          </button>
+          <div className="flex items-center justify-between">
+            <label className="cursor-pointer">
+              <input 
+                type="file" 
+                accept="image/png, image/jpeg, image/webp, image.heic, image.heif"
+                multiple
+                onChange={handleImageChange}
+                className="hidden"
+              />
+              <span className="p-2 bg-gray-200 rounded-full">
+                📎
+              </span>
+            </label>
+            <button 
+              type="submit"
+              className="p-2 bg-blue-500 text-white rounded-full"
+            >
+              ➤
+            </button>
+          </div>
         </form>
       </div>
-    </main>
+    </div>
   );
 }

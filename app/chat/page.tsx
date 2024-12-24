@@ -17,10 +17,14 @@ export default function ChatPage() {
   return (
     <ProtectedRoute>
       <div className="flex h-screen flex-col">
-        <Header />
+        <div className="flex-none">
+          <Header />
+        </div>
         <div className="flex flex-1 overflow-hidden">
           <Sidebar onSelectChat={handleSelectChat} />
-          <ChatInterface chatId={parseInt(chatId || '')} />
+          <div className="flex-1 overflow-hidden">
+            <ChatInterface chatId={parseInt(chatId || '')} />
+          </div>
         </div>
       </div>
     </ProtectedRoute>
